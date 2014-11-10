@@ -22,11 +22,15 @@ class SpecialBibManagerDelete extends UnlistedSpecialPage {
 		global $wgRequest;
 		$this->setHeaders();
 		$wgOut->setPageTitle( wfMsg( 'heading_delete' ) );
-		$deleteSubmit = $wgRequest->getBool( 'bm_delete' );
+		$deleteSubmit = $wgRequest->getBool( 'bm_delete' ) ||
+		        $wgRequest->getBool( 'wpbm_delete' );
 
 		$citation = $wgRequest->getVal( 'bm_bibtexCitation', '' );
 		if ( empty( $citation ) ) {
-			$wgOut->addHtml( wfMsg( 'bm_error_not-found', $citation ) );
+		        $citation = $wgRequest->getVal( 'wpbm_bibtexCitation', '' );
+                }
+		if ( empty( $citation ) ) {
+			$wgOut->addHtml( wfMsg( 'bm_error_input-not-found', $citation ) );
 			return;
 		}
 
@@ -55,6 +59,19 @@ class SpecialBibManagerDelete extends UnlistedSpecialPage {
 			}
 			$table[] = '</table>';
 			$wgOut->addHTML( implode( "\n", $table ) );
+		} else {
+	    	        $result = BibManagerRepository::singleton()->deleteBibEntry( $citation );
+
+	    	        if ( $result === true ) {
+			    $wgOut->addHtml( wfMsg( 'bm_success_save-complete' ) );
+			    $wgOut->addHtml(
+			    	wfMsg(
+					'bm_success_link-to-list',
+					SpecialPage::getTitleFor( "BibManagerList" )->getLocalURL()
+				)
+                            );
+                        }
+                        return $result;
 		}
 		$formDescriptor = array (
 		    'bm_delete' => array (
@@ -64,7 +81,7 @@ class SpecialBibManagerDelete extends UnlistedSpecialPage {
 		    'bm_bibtexCitation' => array (
 			'class' => 'HTMLHiddenField',
 			'default' => $citation,
-		    )
+		    ),
 		);
 
 		$htmlForm = new HTMLForm( $formDescriptor, $this->getContext(), 'bm_delete' );
@@ -85,10 +102,15 @@ class SpecialBibManagerDelete extends UnlistedSpecialPage {
 	 */
 	public function formSubmit ( $formData ) {
 		global $wgOut;
-		if ( empty( $formData['bm_delete'] ) || $formData['bm_delete'] !== true )
+		if ( (empty( $formData['bm_delete'] ) || $formData['bm_delete'] !== true) ||
+		     (empty( $formData['wpbm_delete'] ) || $formData['wpbm_delete'] !== true) )
 			return false;
 
-		$result = BibManagerRepository::singleton()->deleteBibEntry( $formData['bm_bibtexCitation'] );
+                $citation = $formData['bm_bibtexCitation'];
+		if ( empty( $citation ) ) {
+                        $citation = $formData['wpbm_bibtexCitation'];
+		}
+		$result = BibManagerRepository::singleton()->deleteBibEntry( $citation );
 
 		if ( $result === true ) {
 			$wgOut->addHtml( wfMsg( 'bm_success_save-complete' ) );

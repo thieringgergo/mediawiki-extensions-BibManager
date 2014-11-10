@@ -60,56 +60,40 @@ class BibManagerHooks {
 	public static function onBibTag ( $input, $args, $parser, $frame ) {
 		global $wgUser;
 		global $wgBibManagerCitationArticleNamespace;
+		global $wgBibManagerID;
 		$parser->disableCache();
-		if ( !isset( $args['id'] ) ) {
-			return '[' . wfMessage( 'bm_missing-id' )->escaped() . ']';
-		}
-		$parser->getOutput()->addModuleStyles( 'ext.bibManager.styles' );
+		if ( !isset( $args['id'] ) )
+			return '[' . wfMsg( 'bm_missing-id' ) . ']';
 
 		$entry = BibManagerRepository::singleton()
-			->getBibEntryByCitation( $args['id'] );
+		    ->getBibEntryByCitation( $args['id'] );
 
 		$sTooltip = '';
 		$sLink = '';
+		
+		$oCitationTitle = Title::newFromText( $args['id'], $wgBibManagerCitationArticleNamespace );
+		if ( empty($wgBibManagerID['' . $oCitationTitle]))
+			$wgBibManagerID['' . $oCitationTitle]=count($wgBibManagerID)+1;
 		if ( empty( $entry ) ) {
 			$spTitle = SpecialPage::getTitleFor( 'BibManagerCreate' );
 			$sLink = Linker::link(
-				$spTitle,
-				$args['id'],
-				array( 'class' => 'new' ),
-				array ( 'bm_bibtexCitation' => $args['id'] ),
-				array ( 'broken' => true )
+			    $spTitle , '[' . $args['id'] . ']', array ( 'class' => 'new' ), array ( 'bm_bibtexCitation' => $args['id'] ), array ( 'broken' => true )
 			);
-			$sTooltip = '<span>' . wfMessage('bm_error_not-existing')->escaped();
+			$sTooltip = '<span>' . wfMsg('bm_error_not-existing');
 			if ($wgUser->isAllowed('bibmanagercreate')){
-				$sLinkToEdit = SpecialPage::getTitleFor( 'BibManagerCreate' )
-					->getLocalURL(
-						array (
-							'bm_bibtexCitation' => $args['id']
-						)
-					);
-				$sTooltip .= Html::element(
-					"a",
-					array(
-						"href" => $sLinkToEdit
-					),
-					wfMessage( 'bm_tag_click_to_create' )->text()
-				);
+				$sLinkToEdit = SpecialPage::getTitleFor( 'BibManagerCreate' )->getLocalURL( array ( 'bm_bibtexCitation' => $args['id'] ));
+				$sTooltip .= XML::element("a", array("href" => $sLinkToEdit), wfMsg( 'bm_tag_click_to_create' ));
 			}
 			$sTooltip .= '</span>';
+		} else if ( empty( $entry['bm_url'] ) ) {
+			$sLink = '[' . $wgBibManagerID['' . $oCitationTitle] . ']';
+			$sTooltip = self::getTooltip( $entry, $args );
 		} else {
-			$oCitationTitle = Title::newFromText(
-				$args['id'],
-				$wgBibManagerCitationArticleNamespace
-			);
-			$sLink = Linker::link(
-				$oCitationTitle,
-				$args['id'],
-				array ( 'title' => '' )
-			);
+			$oCitationUrl = Title::newFromText( $entry['bm_url'], $wgBibManagerCitationArticleNamespace );
+			$sLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $oCitationTitle] . ']', false);
 			$sTooltip = self::getTooltip( $entry, $args );
 		}
-		return '<span class="bibmanager-citation">[' . $sLink . ']' . $sTooltip . '</span>';
+		return '<span class="bibmanager-citation">' . $sLink . $sTooltip . '</span>';
 	}
 
 	public static function getTooltip ( $entry, $args ) {
@@ -124,22 +108,58 @@ class BibManagerHooks {
 			$unprefixedKey = substr( $key, 3 );
 			if ( empty( $value ) || !in_array( $unprefixedKey, $entryTypeFields ) )
 				continue; //Filter unnecessary fields
-			if ( $unprefixedKey == 'author' ) {
-				$value = implode( '; ', explode( ' and ', $value ) ); // TODO RBV (22.12.11 15:34): Duplicate code!
+			if ( $unprefixedKey == 'author' || $unprefixedKey == 'editor' ) {
+				$value = self::parseLatexString($value);
+				$authors = explode( ' and ', $value );
+				foreach ( $authors as $authors_key => $authors_value ) {
+					//reverse the name order!
+					$name = explode( ',', $authors_value );	
+					foreach ( $name as $name_key => $name_value ) {
+						$frags = explode( ' ', $name_value );
+						if ($name_key == 1){
+							foreach ( $frags as $frags_key => $frags_value ) {
+								if ($frags_value != '')
+									$frags[$frags_key] = mb_substr($frags[$frags_key], 0, 1, 'utf-8') . '.';
+							}
+						}
+						$name[$name_key] = implode(' ' , $frags);
+					}
+					$authors[$authors_key] = implode( ' ' , array_reverse($name));
+				}
+				$value = implode( ', ' , $authors);
 			}
-			$tooltip[] = XML::element( 'strong', null, wfMessage( $key )->escaped() . ': ' ) . ' '
-				. XML::element( 'em', null, $value )
-				."<br/>";//. XML::element( 'br', null, null ); //This is just a little exercise
+			if ( $unprefixedKey == 'title' ) {
+				$parts = explode( '$', $value );	
+				foreach ( $parts as $parts_key => $parts_value ) {
+					if ($parts_key&1){
+						//insert here a math latex interpreter
+						$parts[$parts_key] = '' ;
+					} else {
+						$parts[$parts_key] = self::parseLatexString($parts[$parts_key]);
+					}
+				} 
+				$value = implode( '' , $parts);
+			}
+			if ( $unprefixedKey == 'editor' )
+				$value .= wfMsg( 'bm_editor_addition' );
+			
+			if ( $unprefixedKey != 'url' ) {
+				if (strlen($value) > 250)
+					
+					$value = substr ( $value , 1 , 250 ) . '... more';
+				$tooltip[] = XML::element( 'strong', null, wfMsg( $key ) . ': ' ) . ' '
+			    		. XML::element( 'em', null, $value )
+			    		."<br/>";//. XML::element( 'br', null, null ); //This is just a little exercise
+			}
 		}
-
 		$tooltip[] = self::getIcons( $entry );
 		$tooltipString = implode( "", $tooltip );
 		$tooltipString = '<span>' . $tooltipString . '</span>';
 
-		if ( isset( $args['mode'] ) && $args['mode'] == 'full' ) {
-			$format = self::formatEntry( $entry );
-			$tooltipString = ' ' . $format . ' ' . $tooltipString;
-		}
+		//if ( isset( $args['mode'] ) && $args['mode'] == 'full' ) {
+		//	$format = self::formatEntry( $entry );
+		//	$tooltipString = ' ' . $format . ' ' . $tooltipString;
+		//}
 		return $tooltipString;
 	}
 
@@ -153,16 +173,29 @@ class BibManagerHooks {
 				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/pencil.png',
 				'title' => 'bm_tooltip_edit',
 				'href' => SpecialPage::getTitleFor( 'BibManagerEdit' )
+				->getLocalURL( array ( 'bm_bibtexCitation' => $entry['bm_bibtexCitation'] , 'bm_edit_mode'=> 'yes') )
+			);
+			$icons['delete'] = array (
+				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/cross.png',
+				'title' => 'bm_tooltip_delete',
+				'href' => SpecialPage::getTitleFor( 'BibManagerDelete' )
 				->getLocalURL( array ( 'bm_bibtexCitation' => $entry['bm_bibtexCitation'] ) )
 			);
 		}
 		$scholarLink = str_replace( '%title%', $entry['bm_title'], $wgBibManagerScholarLink );
 		$icons['scholar'] = array (
-			'src' => $wgScriptPath . '/extensions/BibManager/resources/images/book.png',
+			'src' => $wgScriptPath . '/extensions/BibManager/resources/images/scholar.png',
 			'title' => 'bm_tooltip_scholar',
 			'href' => $scholarLink
 		);
-
+		if ( !empty( $entry['bm_url'] ) )
+		{
+			$icons['url'] = array (
+				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/book.png',
+				'title' => 'bm_tooltip_url',
+				'href' => $entry['bm_url']
+			);
+		}
 		wfRunHooks( 'BibManagerGetIcons', array ( $entry, &$icons ) );
 
 		$out = array ( );
@@ -184,8 +217,7 @@ class BibManagerHooks {
 			);
 			$out[] = XML::wrapClass( $anchorEl, 'bm_icon_link' );
 		}
-
-		return implode( '', $out );
+		return '<td style="width:' . 24*count($icons) . 'px">' . implode( '', $out ) . '</td>';
 	}
 
 	/**
@@ -197,6 +229,7 @@ class BibManagerHooks {
 	 * @return string List of used <bib />-tags
 	 */
 	public static function onBiblistTag ( $input, $args, $parser, $frame ) {
+		global $wgBibManagerID;
 		$parser->disableCache();
 
 		$article = new Article( $parser->getTitle() );
@@ -215,13 +248,14 @@ class BibManagerHooks {
 		$entries = array ( );
 		$repo = BibManagerRepository::singleton();
 
-		natsort( $bibTags[1] ); // TODO RBV (23.12.11 13:27): Customizable sorting?
+		//natsort( $bibTags[1] ); // TODO RBV (23.12.11 13:27): No sorting here!
 
 		foreach ( $bibTags[1] as $citation ) {
 			// TODO RBV (10.11.11 13:14): This is not good. If a lot of citations every citation will cause db query.
 			$entries[$citation] = $repo->getBibEntryByCitation( $citation );
+			//return $citation;
 		}
-
+		
 		//$out[] = XML::openElement( 'table', array ( 'class' => 'bm_list_table' ) );
 
 		// TODO RBV (23.12.11 13:28): Remove filtering
@@ -232,9 +266,9 @@ class BibManagerHooks {
 				$filter [$temp[0]] = $temp[1];
 			}
 		}
-
+		//array_multisort($wgBibManagerID,$entries);
 		$out = self::getTable($entries);
-
+		//$out = '';
 		return $out;
 
 		//HINT: Maybe better way to find not existing entries after a _single_ db call.
@@ -261,7 +295,7 @@ class BibManagerHooks {
 		$parser->disableCache();
 
 		if ( !isset( $args['filter'] ) && !isset($args['citation'] ))
-			return '[' . wfMessage( 'bm_missing-filter' )->escaped() . ']';
+			return '[' . wfMsg( 'bm_missing-filter' ) . ']';
 		$repo = BibManagerRepository::singleton();
 		if (isset($args['citation'])){
 			$res [] = $repo->getBibEntryByCitation($args['citation']);
@@ -295,10 +329,22 @@ class BibManagerHooks {
 				$conds[] = implode( ' OR ', $tmpCond );
 			}
 			if ( empty( $conds ) )
-				return '[' . wfMessage( 'bm_invalid-filter' )->escaped() . ']';
-
+				return '[' . wfMsg( 'bm_invalid-filter' ) . ']';
+			
 			$res = $repo->getBibEntries( $conds );
+			if (isset($args['sort']) ){
+				if (in_array( $args['sort'] , $validFieldNames )) {
+					foreach ( $res as $key=>$val ) {
+						$sorter[$key]=$res[$key]['bm_' . $args['sort']];
+					}
+					array_multisort($sorter,$res);
+				} else {
+					return 'Invalid sort field! Valid sorting values:<br>' . implode('<br>',$validFieldNames);
+				}
+			}
 		}
+		//return $args['sort'];
+		
 		$out = self::getTable($res);
 		return $out;
 	}
@@ -307,6 +353,56 @@ class BibManagerHooks {
 		$data .= self::onBiblistTag( null, null, null, null );
 		return true;
 	}
+	public static function parseLatexString ( $input ) {
+		$out = $input;
+	
+		$out = str_replace( '\{aa}',     'å', $out );
+		$out = str_replace( '\\H{o}',    'ő', $out );
+		$out = str_replace( '\\H{u}',  'ű', $out );
+		$out = str_replace( '\{AA}',     'Å', $out );
+		$out = str_replace( '\\H{O}',  'Ő', $out );
+		$out = str_replace( '\\H{U}',  'Ü', $out );
+		$out = str_replace( '\c{c}',     'ç', $out );
+		$out = str_replace( '\c{C}',     'Ç', $out );
+
+		$out = str_replace( '{',     '', $out );
+		$out = str_replace( '}',     '', $out );
+
+		
+		$out = str_replace( '\\\'a',   'á', $out );
+		$out = str_replace( '\\\'a',   'á', $out );
+		$out = str_replace( '\\\'e',   'é', $out );
+		$out = str_replace( '\\\'i',   'í', $out );
+		$out = str_replace( '\\\'o',   'ó', $out );
+		$out = str_replace( '\"o',     'ö', $out );
+		$out = str_replace( '\\\'u',   'ú', $out );
+		$out = str_replace( '\"u',     'ü', $out );
+		$out = str_replace( '\^o',     'ô', $out );
+		$out = str_replace( '\`o',     'ò', $out );
+		$out = str_replace( '\~o',     'õ', $out );	
+		$out = str_replace( '\"a',     'ä', $out );
+		$out = str_replace( '\"i',     'ï', $out );
+		
+
+		$out = str_replace( '\\\'A',   'Á', $out );
+		$out = str_replace( '\\\'A',   'Á', $out );
+		$out = str_replace( '\\\'E',   'É', $out );
+		$out = str_replace( '\\\'I',   'Í', $out );
+		$out = str_replace( '\\\'O',   'Ó', $out );
+		$out = str_replace( '\"O',     'Ö', $out );
+		$out = str_replace( '\\\'U',   'Ú', $out );
+		$out = str_replace( '\"U',     'Ű', $out );
+		$out = str_replace( '\^O',     'Ô', $out );
+		$out = str_replace( '\`O',     'Ò', $out );
+		$out = str_replace( '\~O',     'Õ', $out );		
+		$out = str_replace( '\"A',     'Ä', $out );
+		$out = str_replace( '\"I',     'Ï', $out );
+		
+		$out = str_replace( '\\',     '', $out );
+
+		return $out;
+	}
+
 
 	public static function formatEntry ( $entry, $formatOverride = '', $prefixedKeys = true ) {
 		global $wgBibManagerCitationFormats;
@@ -316,17 +412,47 @@ class BibManagerHooks {
 		}
 
 		foreach ( $entry as $key => $value ) { //Replace placeholders
+			//Apply Latex syntax
 			if ( empty( $value ) )
 				continue;
-
+			
 			if ( $prefixedKeys )
 				$key = substr( $key, 3 ); //'bm_title' --> 'title'
-
-			if ( $key == 'author' || $key == 'editor' )
-				$value = implode( '; ', explode( ' and ', $value ) );
-
+			
+			if ( $key == 'author' || $key == 'editor' ) {
+				$value = self::parseLatexString($value);
+				$authors = explode( ' and ', $value );
+				foreach ( $authors as $authors_key => $authors_value ) {
+					//reverse the name order!
+					$name = explode( ',', $authors_value );	
+					foreach ( $name as $name_key => $name_value ) {
+						$frags = explode( ' ', $name_value );
+						if ($name_key == 1){
+							foreach ( $frags as $frags_key => $frags_value ) {
+								if ($frags_value != '')
+									$frags[$frags_key] = mb_substr($frags[$frags_key], 0, 1, 'utf-8') . '.';
+							}
+						}
+						$name[$name_key] = implode(' ' , $frags);
+					}
+					$authors[$authors_key] = implode( ' ' , array_reverse($name));
+				}
+				$value = implode( ', ' , $authors);
+			}
+			if ( $key == 'title' ) {
+				$parts = explode( '$', $value );	
+				foreach ( $parts as $parts_key => $parts_value ) {
+					if ($parts_key&1){
+						//insert here a math latex interpreter
+						$parts[$parts_key] = '' ;
+					} else {
+						$parts[$parts_key] = self::parseLatexString($parts[$parts_key]);
+					}
+				} 
+				$value = implode( '' , $parts);
+			}
 			if ( $key == 'editor' )
-				$value .= wfMessage( 'bm_editor_addition' )->escaped();
+				$value .= wfMsg( 'bm_editor_addition' );
 
 			if ( $key == 'url' ) {
 				$urlKey = $prefixedKeys ? 'bm_url' : 'url';
@@ -338,13 +464,33 @@ class BibManagerHooks {
 						'class'  => 'external',
 						'rel'    => 'nofollow'
 					),
-					wfMessage( 'bm_url')->escaped()
+					wfMsg( 'bm_url')
 				);
 			}
-
+			if ( $key == 'url' ) {
+				$urlKey = $prefixedKeys ? 'bm_url' : 'url';
+				$value = ' '.XML::element(
+					'a',
+					array(
+						'href'   => $entry[$urlKey],
+						'target' => '_blank',
+						'class'  => 'external',
+						'rel'    => 'nofollow'
+					),
+					wfMsg( 'bm_url')
+				);
+			}
+			if ( $key == 'pages' ) {
+				$value = str_replace( '--',  '-', $value ); //fix for bad bibtex output from Physical Review
+			}
 			$format = str_replace( '%' . $key . '%', $value, $format );
 		}
-
+		//remove empty fields!
+		$fieldsDefs = BibManagerFieldsList::getFieldDefinitions();
+		$validFieldNames = array_keys( $fieldsDefs );
+		//return implode(', ',$validFieldNames);
+		foreach ( $validFieldNames as $key => $value )
+			$format = str_replace( '%' . $value . '%', '-', $format );
 		wfRunHooks( 'BibManagerFormatEntry', array ( $entry, $prefixedKeys, &$format ) );
 		return $format;
 	}
@@ -361,49 +507,57 @@ class BibManagerHooks {
 
 	public static function getTable($res){
 		global $wgUser, $wgBibManagerCitationArticleNamespace;
-		$out = Html::openElement( 'table', array ( 'class' => 'bm_list_table' ) );
-		if ( $res === false ) {
-			return '[' . wfMessage( 'bm_no-data-found' )->escaped() . ']';
-		}
-		foreach ( $res as $key => $val ) {
-			if ( empty( $val ) ){
+		global $wgBibManagerID;
+		$out = XML::openElement( 'table', array ( 'class' => 'bm_list_table' ) );
+		if ( $res === false )
+			return '[' . wfMsg( 'bm_no-data-found' ) . ']';
+		foreach ( $res as $key=>$val ) {
+			$oCitationTitle = Title::newFromText( $key, $wgBibManagerCitationArticleNamespace );
+			//return $oCitationTitle;
+			if (empty($val)){
+				if ( empty($wgBibManagerID['' . $oCitationTitle]))
+					$wgBibManagerID['' . $oCitationTitle]=count($wgBibManagerID)+1;
 				$spTitle = SpecialPage::getTitleFor( 'BibManagerCreate' ); // TODO RBV (10.11.11 13:50): Dublicate code --> encapsulate
 				$citLink = Linker::link(
-					$spTitle,
-					$key,
-					array ( 'class' => 'new' ),
-					array ( 'bm_bibtexCitation' => $key ),
-					array ( 'broken' => true )
+				    $spTitle, '[' . $key . ']' , array ( 'class' => 'new' ), array ( 'bm_bibtexCitation' => $key ), array ( 'broken' => true )
 				);
 				$sLinkToEdit = SpecialPage::getTitleFor( 'BibManagerCreate' )->getLocalURL( array ( 'bm_bibtexCitation' => $key ));
-				$citFormat = '<em>' . wfMessage('bm_error_not-existing')->escaped();
-				if ( $wgUser->isAllowed('bibmanagercreate') ) {
-					$citFormat .= Html::element(
-						'a',
-						array( 'href' => $sLinkToEdit ),
-						wfMessage( 'bm_tag_click_to_create' )->text()
-					);
-				}
+				$citFormat = '<em>' . wfMsg('bm_error_not-existing');
+				if ($wgUser->isAllowed('bibmanagercreate'))
+					$citFormat .= XML::element('a', array('href' => $sLinkToEdit), wfMsg( 'bm_tag_click_to_create' ));
 				$citFormat .='</em>';
 				$citIcons = '';
 			}
 			else {
-				$title = Title::newFromText(
-					$val['bm_bibtexCitation'],
-					$wgBibManagerCitationArticleNamespace
-				);
-				$citLink = Linker::link( $title, $val['bm_bibtexCitation'] );
+				$spTitle = Title::newFromText( $val['bm_bibtexCitation'], $wgBibManagerCitationArticleNamespace );
+				if ( empty($wgBibManagerID['' . $spTitle]))
+					$wgBibManagerID['' . $spTitle]=count($wgBibManagerID)+1;
+				//$citLink = Linker::link(
+				//    $title, $title->getText()
+				//);
+				//$citLink = Linker::link(
+				//    $title, $wgBibManagerID['' . $val['bm_bibtexCitation']]
+				//);
+				if (empty($val['bm_url'])){
+					$citLink = '[' . $wgBibManagerID['' . $spTitle ] . ']';
+				} else {
+					$oCitationUrl = Title::newFromText( $val['bm_url'], $wgBibManagerCitationArticleNamespace );
+					$citLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $spTitle] . ']', false);
+				}
+				//return $title;
+				//return count($wgBibManagerID);
+				//return $wgBibManagerID['' . $title];
 				$citFormat = self::formatEntry( $val );
 				$citIcons = self::getIcons( $val );
 			}
-
-			$out .= Html::openElement( 'tr' );
-			$out .= '<td style="width:100px; text-align: left; vertical-align: top;">[' . $citLink . ']</td>';
+			$out .= XML::openElement( 'tr' );
+			$out .= '<td style="width:30px; text-align: left; vertical-align: top;">' . $citLink . '</td>';
 			$out .= '<td>' . $citFormat . '</td>';
-			$out .= '<td style="width:70px">' . $citIcons . '</td>';
-			$out .= Html::closeElement( 'tr' );
+			//$out .= '<td style="width:100px">' . $citIcons . '</td>';
+			$out .= $citIcons;
+			$out .= XML::closeElement( 'tr' );
 		}
-		$out .= Html::closeElement( 'table' );
+		$out .= XML::closeElement( 'table' );
 		return $out;
 	}
 }

@@ -42,6 +42,8 @@ class BibManagerValidator {
 
 		$repo = BibManagerRepository::singleton();
 		if ( $repo->getBibEntries( array ( "bm_bibtexCitation" => $value ) ) !== false ) {
+			//override editmode. Keep in mind the initial url editmode='yes' is lost, so we need this workaround!
+			if ($allData['bm_edit_mode']!= 'yes')
 			return $repo->getCitationsLike( $value ); // TODO RBV (18.12.11 15:47): Bad interface! Better get citations by PK and if not empty create error message here!
 		}
 

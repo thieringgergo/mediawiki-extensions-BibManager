@@ -120,6 +120,8 @@
 	"bm_editor_addition": " (eds.)",
 	"bm_tooltip_edit": "Edit BibTeX-Entry",
 	"bm_tooltip_scholar": "Link to Google Scholar",
+	"bm_tooltip_url": "External Link",
+	"bm_tooltip_delete": "Delete BibTeX-Entry",
 	"bm_month_jan": "January",
 	"bm_month_feb": "February",
 	"bm_month_mar": "March",

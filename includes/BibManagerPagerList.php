@@ -97,8 +97,8 @@ class BibManagerPagerList extends AlphabeticPager {
 			'checkbox'
 		);
 
-		$specialPageQuery = array ( 'bm_bibtexCitation' => $row->bm_bibtexCitation );
-
+		$specialPageQuery = array ( 'bm_bibtexCitation' => $row->bm_bibtexCitation , 'bm_edit_mode'=> 'yes');
+//
 		if ($wgUser->isAllowed('bibmanageredit')){
 			$editLink = Linker::link(
 				SpecialPage::getTitleFor( 'BibManagerEdit' ),

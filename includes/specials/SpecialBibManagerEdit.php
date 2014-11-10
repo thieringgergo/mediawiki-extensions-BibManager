@@ -52,10 +52,12 @@ class SpecialBibManagerEdit extends UnlistedSpecialPage {
 		// bm_entry_type_incollection, bm_entry_type_inproceedings, bm_entry_type_manual,
 		// bm_entry_type_mastersthesis, bm_entry_type_misc, bm_entry_type_phdthesis,
 		// bm_entry_type_proceedings, bm_entry_type_techreport, bm_entry_type_unpublished
-		$wgOut->setPageTitle( wfMsg( 'heading_edit', wfMsg( 'bm_entry_type_' . $entryType ) ) );
+		
 
 		$typeDefs = BibManagerFieldsList::getTypeDefinitions();
 		$bibTeXFields = BibManagerFieldsList::getFieldDefinitions();
+	
+		
 
 		$formDescriptor = array();
 		$formDescriptor['bm_bibtexCitation'] = array (
@@ -65,21 +67,27 @@ class SpecialBibManagerEdit extends UnlistedSpecialPage {
 			'required' => true,
 			'validation-callback' => 'BibManagerValidator::validateCitation'
 		);
+		$formDescriptor['bm_edit_mode'] = array (
+				'class' => 'HTMLHiddenField',
+				//'class' => 'HTMLTextField',
+				'section' => 'citation',
+				'label' => 'editmode'
+		);
+		//$formDescriptor['bm_edit_mode']['default'] = isset( $entry['bm_edit_mode'] ) ? $entry['bm_edit_mode'] : '';
 
-		$editMode = $wgRequest->getBool( 'bm_edit_mode' );
-		if ( $editMode || !empty( $entry['bm_bibtexCitation'] ) ) { // TODO RBV (18.12.11 14:26): What if we come from an redlink?
+		if ( $wgRequest->getVal( 'bm_edit_mode', '' ) == 'yes' ) {
+			//for the first time we extract the value from the URL bar!
+			$formDescriptor['bm_edit_mode']['default'] = 'yes';
+		}
+		$wgOut->setPageTitle( wfMsg( 'heading_edit', wfMsg( 'bm_entry_type_' . $entryType ) ) );
+		
+		//getPageTitle();
+
+		if ( $editMode || !empty( $entry['bm_bibtexCitation'] ) || $wgRequest->getVal( 'bm_edit_mode', '' ) == 'yes') { 
+			// TODO RBV (18.12.11 14:26): What if we come from an redlink?
 			$formDescriptor['bm_bibtexCitation']['readonly'] = true;
 			$formDescriptor['bm_bibtexCitation']['default'] = $entry['bm_bibtexCitation'];
 			$formDescriptor['bm_bibtexCitation']['help-message'] = 'bm_readonly';
-
-			if ( $editMode ) {
-				unset( $formDescriptor['bm_bibtexCitation']['validation-callback'] ); //If it is a edit we dont need to revalidate
-			}
-
-			$formDescriptor['bm_edit_mode'] = array (
-				'class' => 'HTMLHiddenField',
-				'default' => 1
-			);
 		}
 
 		foreach ( $typeDefs[$entryType]['required'] as $fieldName ) {
