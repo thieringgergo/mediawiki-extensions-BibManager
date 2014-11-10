@@ -9,4 +9,5 @@ compared to 1.23 this version has
 - Google scholar icon
 - All links are replaced to external (URL) ones
 - limited extra charachter őúöüóáű support
-- More fancy tyle
+- sort option for <bibprint filter="author:%myauthor%" sort="year" />
+- More fancy style
