@@ -86,9 +86,16 @@ class BibManagerPagerList extends AlphabeticPager {
 		global $wgUser;
 		global $wgBibManagerCitationArticleNamespace;
 
-		$citationTitle = Title::newFromText( $row->bm_bibtexCitation, $wgBibManagerCitationArticleNamespace );
+		
+		
+		if ( empty($row->bm_url) )  {
+			$citationTitle = Title::newFromText( $row->bm_bibtexCitation, $wgBibManagerCitationArticleNamespace );
+			$citationLink = '[' . $citationTitle . ']';
+		} else {
+			$oCitationUrl = Title::newFromText( $row->bm_url, $wgBibManagerCitationArticleNamespace );
+			$citationLink = Linker::makeExternalLink($oCitationUrl, '[' . $row->bm_bibtexCitation . ']' , false);
+		}
 
-		$citationLink = Linker::link( $citationTitle, $row->bm_bibtexCitation );
 		$editLink	 = '';
 		$deleteLink   = '';
 		$exportLink   = Html::input(

@@ -196,6 +196,12 @@ class BibManagerHooks {
 				'href' => $entry['bm_url']
 			);
 		}
+		$icons['exportBib'] = array (
+			'src' => $wgScriptPath . '/extensions/BibManager/resources/images/disk.png',
+			'title' => 'bm_tooltip_exportBib',
+			'href' => SpecialPage::getTitleFor( 'BibManagerExport' )
+				->getLocalURL( array ( 'cit' => $entry['bm_bibtexCitation'] ) )
+		);
 		wfRunHooks( 'BibManagerGetIcons', array ( $entry, &$icons ) );
 
 		$out = array ( );
