@@ -144,6 +144,12 @@ class BibManagerFieldsList {
 			'default' => 'http://',
 			'validation-callback' => 'BibManagerValidator::validateUrl',
 		    ), // The WWW address
+		    'doi' => array (
+			'class' => 'HTMLTextField',
+			'label' => wfMessage( 'bm_doi' )->escaped(),
+			'default' => 'http://doi.org',
+			'validation-callback' => 'BibManagerValidator::validateDoi',
+		    ), // The Doi number
 		    'volume' => array (
 			'class' => 'HTMLTextField',
 			'label' => wfMessage( 'bm_volume' )->escaped(),
@@ -165,72 +171,72 @@ class BibManagerFieldsList {
 		    'article' => array (
 			'label' => wfMessage( 'bm_entry_type_article' )->escaped(),
 			'required' => array ( 'author', 'title', 'journal', 'year' ),
-			'optional' => array ( 'volume', 'number', 'pages', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'volume', 'number', 'pages', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'book' => array (
 			'label' => wfMessage( 'bm_entry_type_book' )->escaped(),
 			'required' => array ( 'author', 'editor', 'title', 'publisher', 'year' ),
-			'optional' => array ( 'volume', 'number', 'series', 'address', 'edition', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'volume', 'number', 'series', 'address', 'edition', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'booklet' => array (
 			'label' => wfMessage( 'bm_entry_type_booklet' )->escaped(),
 			'required' => array ( 'title' ),
-			'optional' => array ( 'author', 'howpublished', 'address', 'month', 'year', 'note', 'key' )
+			'optional' => array ( 'author', 'howpublished', 'address', 'month', 'year', 'note', 'key' , 'doi' )
 		    ),
 		    'conference' => array (
 			'label' => wfMessage( 'bm_entry_type_conference' )->escaped(),
 			'required' => array ( 'author', 'title', 'booktitle', 'year' ),
-			'optional' => array ( 'editor', 'volume', 'number', 'series', 'pages', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' )
+			'optional' => array ( 'editor', 'volume', 'number', 'series', 'pages', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'inbook' => array (
 			'label' => wfMessage( 'bm_entry_type_inbook' )->escaped(),
 			'required' => array ( 'author', 'editor', 'title', 'chapter', 'pages', 'publisher', 'year' ),
-			'optional' => array ( 'volume', 'number', 'series', 'type', 'address', 'edition', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'volume', 'number', 'series', 'type', 'address', 'edition', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'incollection' => array (
 			'label' => wfMessage( 'bm_entry_type_incollection' )->escaped(),
 			'required' => array ( 'author', 'title', 'booktitle', 'publisher', 'year' ),
-			'optional' => array ( 'editor', 'volume', 'number', 'series', 'type', 'address', 'chapter', 'pages', 'address', 'edition', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'editor', 'volume', 'number', 'series', 'type', 'address', 'chapter', 'pages', 'address', 'edition', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'inproceedings' => array (
 			'label' => wfMessage( 'bm_entry_type_inproceedings' )->escaped(),
 			'required' => array ( 'author', 'title', 'booktitle', 'year' ),
-			'optional' => array ( 'editor', 'volume', 'number', 'series', 'pages', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' )
+			'optional' => array ( 'editor', 'volume', 'number', 'series', 'pages', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'manual' => array (
 			'label' => wfMessage( 'bm_entry_type_manual' )->escaped(),
 			'required' => array ( 'title' ),
-			'optional' => array ( 'author', 'organization', 'address', 'edition', 'month', 'year', 'note', 'key', 'url' )
+			'optional' => array ( 'author', 'organization', 'address', 'edition', 'month', 'year', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'mastersthesis' => array (
 			'label' => wfMessage( 'bm_entry_type_mastersthesis' )->escaped(),
 			'required' => array ( 'author', 'title', 'school', 'year' ),
-			'optional' => array ( 'type', 'address', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'type', 'address', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'misc' => array (
 			'label' => wfMessage( 'bm_entry_type_misc' )->escaped(),
 			'required' => array ( ),
-			'optional' => array ( 'author', 'title', 'howpublished', 'month', 'year', 'note', 'key', 'url' )
+			'optional' => array ( 'author', 'title', 'howpublished', 'month', 'year', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'phdthesis' => array (
 			'label' => wfMessage( 'bm_entry_type_phdthesis' )->escaped(),
 			'required' => array ( 'author', 'title', 'school', 'year' ),
-			'optional' => array ( 'type', 'address', 'month', 'note', 'key', 'url' )
+			'optional' => array ( 'type', 'address', 'month', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'proceedings' => array (
 			'label' => wfMessage( 'bm_entry_type_proceedings' )->escaped(),
 			'required' => array ( 'title', 'year' ),
-			'optional' => array ( 'editor', 'volume', 'number', 'series', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' )
+			'optional' => array ( 'editor', 'volume', 'number', 'series', 'address', 'month', 'organization', 'publisher', 'note', 'key', 'url' , 'doi' )
 		    ),
 		    'techreport' => array (
 			'label' => wfMessage( 'bm_entry_type_techreport' )->escaped(),
 			'required' => array ( 'author', 'title', 'institution', 'year' ),
-			'optional' => array ( 'type', 'note', 'number', 'address', 'month', 'key', 'url' )
+			'optional' => array ( 'type', 'note', 'number', 'address', 'month', 'key', 'url' , 'doi' )
 		    ),
 		    'unpublished' => array (
 			'label' => wfMessage( 'bm_entry_type_unpublished' )->escaped(),
 			'required' => array ( 'author', 'title', 'note' ),
-			'optional' => array ( 'month', 'year', 'key', 'url' )
+			'optional' => array ( 'month', 'year', 'key', 'url' , 'doi' )
 		    )
 		);
 

@@ -26,6 +26,43 @@ class BibManagerLocalMWDatabaseRepo extends BibManagerRepository {
 		}
 		return true;
 	}
+	public function getDoisLike ( $doi , $sCitation) {
+		$dbr = wfGetDB( DB_SLAVE );
+		$res = $dbr->select(
+			'bibmanager',
+			'bm_bibtexCitation',
+			array (
+				'bm_doi'
+				. $dbr->buildLike( $doi, $dbr->anyString() )
+			)
+		);
+		if ( $dbr->numRows( $res ) > 0 ) {
+			$aExistingDois = array();
+			$doiOccurence = 0;
+			foreach ( $res as $row ) {
+				$aExistingCitation = $row->bm_bibtexCitation;
+				//skip self. If the bm_bibtexCitation->bm_doi is same as our submitted submittedCitation->
+				//return $row->bm_doi . 'X' . $row->bm_bibtexCitation;
+				if ($sCitation != $aExistingCitation) {
+					$aExistingCitations[] = $aExistingCitation;
+				}	
+			}
+			//return  count($aExistingCitations);
+			if ( count($aExistingCitations) == 1 ) {
+				return wfMessage(
+					'bm_error_doi_exists',
+					$aExistingCitation, $doi, $sCitation
+				)->escaped();
+			} else if ( count($aExistingCitations) != 0 ) {
+				return wfMessage(
+					'bm_error_doi_toomuch',
+					implode( ',', $aExistingCitations )
+				)->escaped();
+			}
+		}
+		return true;
+	}
+
 
 	/**
 	 *

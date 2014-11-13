@@ -85,6 +85,11 @@ class SpecialBibManagerImport extends SpecialPage {
 				// TODO RBV (18.12.11 16:02): field validation!!!
 				$cleanedEntries[] = array ( $citation, $entryType, $submittedFields );
 			}
+			if ( !empty( $submittedFields['bm_doi'] ) )
+				$submittedFields['bm_bibtexCitation'] = $citation;
+				$result = BibManagerValidator::validateDoi( $submittedFields['bm_doi'], $submittedFields );
+			if ( $result !== true )
+				$errors[] = $result;
 		}
 		if ( !empty( $errors ) ) {
 

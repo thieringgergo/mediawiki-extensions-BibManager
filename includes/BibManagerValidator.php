@@ -361,6 +361,32 @@ class BibManagerValidator {
 	}
 
 	/**
+	 * checks if the input-string is a valid doi (should NOT start with http:// !)
+	 * @param String $value
+	 * @param Array $allData
+	 * @return mixed true if valid, else error-message 
+	 */
+	public static function validateDoi ( $value, $allData = '' ) {
+		$result = self::validateRequired( 'url', $value, $allData );
+		if ( empty( $value ) )
+			return $result; //This is not a required field allow empty submits!
+		if ( !($result === true && !filter_var( $value, FILTER_VALIDATE_URL ) ) )
+			$result = wfMsg( 'bm_wrong-doi-format' );
+		$repo = BibManagerRepository::singleton();
+		//Make sure that the given doi is not exists
+		if ( $repo->getBibEntries( array ( "bm_doi" => $value ) ) !== false ) {
+			//override editmode. Keep in mind the initial url editmode='yes' is lost, so we need this workaround!
+			//if ($allData['bm_edit_mode']!= 'yes' )
+			  //return 'DOI';
+			$citation = $allData['bm_bibtexCitation'];
+			return $repo->getDoisLike( $value , $citation); 
+		}
+		return $result;
+	}
+
+
+
+	/**
 	 * 
 	 * @param String $value
 	 * @param Array $allData

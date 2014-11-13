@@ -68,20 +68,29 @@ class SpecialBibManagerEdit extends UnlistedSpecialPage {
 			'validation-callback' => 'BibManagerValidator::validateCitation'
 		);
 		$formDescriptor['bm_edit_mode'] = array (
-				'class' => 'HTMLHiddenField',
-				//'class' => 'HTMLTextField',
+				//'class' => 'HTMLHiddenField',
+				//'class' => 'HTMLField',
+				'readonly' => 'true',
+				'class' => 'HTMLTextField',
 				'section' => 'citation',
-				'label' => 'editmode'
+				'label' => 'editmode',
+				'default' => 'no'
 		);
 		//$formDescriptor['bm_edit_mode']['default'] = isset( $entry['bm_edit_mode'] ) ? $entry['bm_edit_mode'] : '';
 
 		if ( $wgRequest->getVal( 'bm_edit_mode', '' ) == 'yes' ) {
 			//for the first time we extract the value from the URL bar!
+			$editmode = true;
 			$formDescriptor['bm_edit_mode']['default'] = 'yes';
 		}
-		$wgOut->setPageTitle( wfMsg( 'heading_edit', wfMsg( 'bm_entry_type_' . $entryType ) ) );
 		
-		//getPageTitle();
+		$wgOut->setPageTitle( wfMsg( 'heading_edit', wfMsg( 'bm_entry_type_' . $entryType ) ) );
+		if( empty( $editmode ) ) {
+			$editmode = $wgRequest->getVal( 'wpbm_edit_mode', '' );
+			//$wgOut->setPageTitle( $wgRequest->getVal( 'wpbm_edit_mode', '' ) );
+			//$editmode = true;
+			$formDescriptor['bm_bibtexCitation']['readonly'] = true;
+		}
 
 		if ( $editMode || !empty( $entry['bm_bibtexCitation'] ) || $wgRequest->getVal( 'bm_edit_mode', '' ) == 'yes') { 
 			// TODO RBV (18.12.11 14:26): What if we come from an redlink?

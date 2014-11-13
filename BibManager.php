@@ -111,21 +111,21 @@ unset( $resourceModuleTemplate );
 //Config Variables
 $wgBibManagerRepoClass = 'BibManagerLocalMWDatabaseRepo';
 $wgBibManagerCitationFormats = array (
-    '-'             => '%author%: %title%, %year%',
-    'article'       => '%author% (%year%): %title%. <em>%journal%</em>, %volume%, %pages%',
-    'book'          => '%author% (%year%): %title%. (%edition%). <em>%publisher%</em>, %address%, %pages%',
+    '-'             => '%author%: (%year%) <small><em>%title%</em></small>',
+    'article'       => '%author%: <em>%journal%</em>, <b>%volume%</b>, %pages% (%year%). <small><em>%title%</em></small>',
+    'book'          => '%author%: (%edition%). <em>%publisher%</em>, %address%, %pages% (%year%). <small><em>%title%</em></small>',
     'booklet'       => '%title%',
-    'conference'    => '%author% (%year%): %title%. %booktitle%',
-    'inbook'        => '%author% (%year%): %title%. (%edition%). <em>%publisher%</em>, %address%, %pages%, %editor%, %chapter%',
-    'incollection'  => '%author% (%year%): %title%.  %booktitle%',
-    'inproceedings' => '%author% (%year%): %title%. <em>%publisher%</em>, %booktitle%',
+    'conference'    => '%author%: %booktitle% (%year%). <small><em>%title%</em></small>',
+    'inbook'        => '%author%: (%edition%). <em>%publisher%</em>, %address%, %pages%, %editor%, %chapter% (%year%). <small><em>%title%</em></small>',
+    'incollection'  => '%author%: %booktitle% (%year%). <small><em>%title%</em></small>',
+    'inproceedings' => '%author%: <em>%publisher%</em>, %booktitle% (%year%). <small><em>%title%</em></small>',
     'manual'        => '%title%',
-    'mastersthesis' => '%author% (%year%): %title%. %school%',
-    'misc'          => '%author%: %title%, %year%',
-    'phdthesis'     => '%author% (%year%): %title%. %school%',
-    'proceedings'   => '%title% (%year%)',
-    'techreport'    => '%author% (%year%): %title%. %institution%.',
-    'unpublished'   => '%author%: %title%. %note%.'
+    'mastersthesis' => '%author%: %school% (%year%). <small><em>%title%</em></small>',
+    'misc'          => '%author%: (%year%). <small><em>%title%</em></small>',
+    'phdthesis'     => '%author%: %school% (%year%). <small><em>%title%</em></small>',
+    'proceedings'   => '(%year%). <small><em>%title%</em></small>',
+    'techreport'    => '%author%: %institution%. (%year%). <small><em>%title%</em></small>',
+    'unpublished'   => '%author%: %note%. <small><em>%title%</em></small>'
 );
 
 //$wgBibManagerSkinAfterContentBibListConfig = array( 'hr' => true, 'hideonemptylist' => true ); //For future use.

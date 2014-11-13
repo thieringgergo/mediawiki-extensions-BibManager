@@ -85,12 +85,16 @@ class BibManagerHooks {
 				$sTooltip .= XML::element("a", array("href" => $sLinkToEdit), wfMsg( 'bm_tag_click_to_create' ));
 			}
 			$sTooltip .= '</span>';
-		} else if ( empty( $entry['bm_url'] ) ) {
-			$sLink = '[' . $wgBibManagerID['' . $oCitationTitle] . ']';
+		} else if ( !empty( $entry['bm_doi'] ) ) {
+			$oCitationUrl = Title::newFromText( 'http://doi.org/' . $entry['bm_doi'], $wgBibManagerCitationArticleNamespace );
+			$sLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $oCitationTitle] . ']', false);
 			$sTooltip = self::getTooltip( $entry, $args );
-		} else {
+		} else if ( !empty( $entry['bm_url'] ) ) {
 			$oCitationUrl = Title::newFromText( $entry['bm_url'], $wgBibManagerCitationArticleNamespace );
 			$sLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $oCitationTitle] . ']', false);
+			$sTooltip = self::getTooltip( $entry, $args );
+		} else {
+			$sLink = '[' . $wgBibManagerID['' . $oCitationTitle] . ']';
 			$sTooltip = self::getTooltip( $entry, $args );
 		}
 		return '<span class="bibmanager-citation">' . $sLink . $sTooltip . '</span>';
@@ -181,20 +185,29 @@ class BibManagerHooks {
 				'href' => SpecialPage::getTitleFor( 'BibManagerDelete' )
 				->getLocalURL( array ( 'bm_bibtexCitation' => $entry['bm_bibtexCitation'] ) )
 			);
+			
 		}
 		$scholarLink = str_replace( '%title%', $entry['bm_title'], $wgBibManagerScholarLink );
-		$icons['scholar'] = array (
+	
+		if ( !empty( $entry['bm_doi'] ) )
+		{
+			$icons['url'] = array (
+				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/doi.png',
+				'title' => 'bm_tooltip_doi',
+				'href' => 'http://doi.org/' . $entry['bm_doi']
+			); // Use doi if its possible!
+		} else if ( !empty( $entry['bm_url'] ) )
+		{
+			$icons['url'] = array (
+				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/url.png',
+				'title' => 'bm_tooltip_url',
+				'href' => $entry['bm_url']
+			); // Use url if doi is not given!
+		} else { $icons['scholar'] = array (
 			'src' => $wgScriptPath . '/extensions/BibManager/resources/images/scholar.png',
 			'title' => 'bm_tooltip_scholar',
 			'href' => $scholarLink
-		);
-		if ( !empty( $entry['bm_url'] ) )
-		{
-			$icons['url'] = array (
-				'src' => $wgScriptPath . '/extensions/BibManager/resources/images/book.png',
-				'title' => 'bm_tooltip_url',
-				'href' => $entry['bm_url']
-			);
+			); // Adds Google Scholar search Link at last resort only.
 		}
 		$icons['exportBib'] = array (
 			'src' => $wgScriptPath . '/extensions/BibManager/resources/images/disk.png',
@@ -544,11 +557,14 @@ class BibManagerHooks {
 				//$citLink = Linker::link(
 				//    $title, $wgBibManagerID['' . $val['bm_bibtexCitation']]
 				//);
-				if (empty($val['bm_url'])){
-					$citLink = '[' . $wgBibManagerID['' . $spTitle ] . ']';
-				} else {
+				if (!empty($val['bm_doi'])) {
+					$oCitationUrl = Title::newFromText( 'http://doi.org/' . $val['bm_doi'], $wgBibManagerCitationArticleNamespace );
+					$citLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $spTitle] . ']', false);	
+				} else if (!empty($val['bm_url'])) {
 					$oCitationUrl = Title::newFromText( $val['bm_url'], $wgBibManagerCitationArticleNamespace );
 					$citLink = Linker::makeExternalLink($oCitationUrl, '[' . $wgBibManagerID['' . $spTitle] . ']', false);
+				} else {
+					$citLink = '[' . $wgBibManagerID['' . $spTitle ] . ']';
 				}
 				//return $title;
 				//return count($wgBibManagerID);
